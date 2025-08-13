@@ -1245,8 +1245,7 @@ namespace nlsat {
             // Remark: after vanishing coefficients are eliminated, ps may not contain max_x anymore
             
             polynomial_ref_vector samples(m_pm);
-
-            levelwise_project(ps, max_x, this->m_assignment);
+            ps = levelwise_project(ps, max_x, this->m_assignment);
             if (x < max_x)
                 cac_add_cell_lits(ps, x, samples);
 
