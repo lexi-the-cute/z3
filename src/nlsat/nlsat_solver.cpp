@@ -2215,12 +2215,13 @@ namespace nlsat {
             
             
             m_lazy_clause.reset();
-            m_explain.main_operator(jst.num_lits(), jst.lits(), m_lazy_clause);
+            m_explain.compute_conflict_explanation(jst.num_lits(), jst.lits(), m_lazy_clause);
             for (unsigned i = 0; i < sz; i++)
                 m_lazy_clause.push_back(~jst.lit(i));
             
             // lazy clause is a valid clause
             TRACE(nlsat_mathematica, display_mathematica_lemma(tout, m_lazy_clause.size(), m_lazy_clause.data()););
+            exit(0);
             if (m_dump_mathematica) {
 //                verbose_stream() << "lazy clause\n";
                 display_mathematica_lemma(verbose_stream(), m_lazy_clause.size(), m_lazy_clause.data()) << std::endl;

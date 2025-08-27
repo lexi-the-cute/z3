@@ -1220,8 +1220,8 @@ namespace nlsat {
             // Remark: after vanishing coefficients are eliminated, ps may not contain max_x anymore
             
             polynomial_ref_vector samples(m_pm);
-            levelwise lws(m_solver, ps, max_x, sample(), m_pm, m_am);
-            auto cell = lws.single_cell();
+            // levelwise lws(m_solver, ps, max_x, sample(), m_pm, m_am);
+            //auto cell = lws.single_cell();
             if (x < max_x)
                 cac_add_cell_lits(ps, x, samples);
 
@@ -1716,7 +1716,7 @@ namespace nlsat {
             }
         }
       
-        void operator()(unsigned num, literal const * ls, scoped_literal_vector & result) {
+        void compute_conflict_explanation(unsigned num, literal const * ls, scoped_literal_vector & result) {
             SASSERT(check_already_added());
             SASSERT(num > 0);
             TRACE(nlsat_explain, 
@@ -2104,11 +2104,11 @@ namespace nlsat {
     }
 
     void explain::set_signed_project(bool f) {
-        m_imp->m_signed_project = f;
+        m_imp->m_signed_project = f;;
     }
 
-    void explain::main_operator(unsigned n, literal const * ls, scoped_literal_vector & result) {
-        (*m_imp)(n, ls, result);
+    void explain::compute_conflict_explanation(unsigned n, literal const * ls, scoped_literal_vector & result) {
+        m_imp->compute_conflict_explanation(n, ls, result);
     }
 
     void explain::project(var x, unsigned n, literal const * ls, scoped_literal_vector & result) {
