@@ -163,6 +163,7 @@ int main(int argc, char ** argv) {
     TST(udoc_relation);
     TST(string_buffer);
     TST(map);
+    TST(debug);
     TST(diff_logic);
     TST(uint_set);
     TST_ARGV(expr_rand);
