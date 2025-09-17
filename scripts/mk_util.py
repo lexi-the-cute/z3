@@ -2697,6 +2697,13 @@ def mk_config():
             CXXFLAGS = '%s -arch arm64' % CXXFLAGS
             LDFLAGS = '%s -arch arm64' % LDFLAGS
             SLIBEXTRAFLAGS = '%s -arch arm64' % SLIBEXTRAFLAGS
+        if IS_OSX:
+            # Add proper dylib versioning flags for macOS
+            # compatibility_version is the minimum version that can use this library
+            # current_version is the current version of this library
+            compatibility_version = "{}.{}.0".format(VER_MAJOR, VER_MINOR)
+            current_version = "{}.{}.{}".format(VER_MAJOR, VER_MINOR, VER_BUILD)
+            SLIBEXTRAFLAGS = '%s -Wl,-compatibility_version,%s -Wl,-current_version,%s' % (SLIBEXTRAFLAGS, compatibility_version, current_version)
         if IS_OSX and is_ml_enabled():
             SLIBFLAGS += ' -Wl,-headerpad_max_install_names'
 
