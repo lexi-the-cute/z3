@@ -1199,31 +1199,29 @@ namespace nlsat {
             for (auto p: m_todo.m_set)
                 ps.push_back(p);
             
-            var x = m_todo.extract_max_polys(ps);
+            m_todo.extract_max_polys(ps);
             // Remark: after vanishing coefficients are eliminated, ps may not contain max_x anymore
             
             levelwise lws(m_solver, ps, max_x, sample(), m_pm, m_am);
             auto cell = lws.single_cell();
             TRACE(lws, for (unsigned i = 0; i < cell.size(); i++)  
                                  display(tout << "I[" << i << "]:", m_solver, cell[i]) << "\n";);
-            if (x < max_x)
-                cac_add_cell_lits(ps, x);
-
-            while (true) {
-                if (all_univ(ps, x) && m_todo.empty()) {
-                    m_todo.reset();
-                    break;
+            // Enumerate all intervals in the computed cell and add literals for each non-trivial interval.
+            // Non-trivial = section, or sector with at least one finite bound (ignore (-oo,+oo)).
+            for (auto const & I : cell) {
+                if (I.is_section()) {
+                    if (I.l && I.l_index) // root indices start at 1
+                        add_root_literal(atom::ROOT_EQ, max_var(I.l.get()), I.l_index, I.l.get());
+                    continue;
                 }
-                TRACE(nlsat_explain, tout << "project loop, processing var "; display_var(tout, m_solver, x); tout << "\npolynomials\n";
-                      display(tout, m_solver, ps); tout << "\n";);
-                add_lcs(ps, x);
-                psc_discriminant(ps, x);
-                psc_resultant(ps, x);
-                
-                if (m_todo.empty())
-                    break;
-                x = m_todo.extract_max_polys(ps);
-                cac_add_cell_lits(ps, x);
+                if (I.l_inf() && I.u_inf())
+                    continue; // skip whole-line sector
+                if (!I.l_inf() && I.l_index)
+                    add_root_literal(m_full_dimensional ? atom::ROOT_GE : 
+                        atom::ROOT_GT, max_var(I.l.get()), I.l_index, I.l.get());
+                if (!I.u_inf() && I.u_index && I.u)
+                    add_root_literal(m_full_dimensional ? atom::ROOT_LE : 
+                        atom::ROOT_LT, max_var(I.u.get()), I.u_index, I.u.get());
             }
         }
 
