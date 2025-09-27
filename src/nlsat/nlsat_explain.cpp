@@ -1209,6 +1209,8 @@ namespace nlsat {
             polynomial_ref_vector samples(m_pm);
             levelwise lws(m_solver, ps, max_x, sample(), m_pm, m_am);
             auto cell = lws.single_cell();
+            TRACE(lws, for (unsigned i = 0; i < cell.size(); i++)  
+                                 display(tout << "I[" << i << "]:", m_solver, cell[i]) << "\n";);
             if (x < max_x)
                 cac_add_cell_lits(ps, x, samples);
 
