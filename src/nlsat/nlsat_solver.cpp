@@ -1,3 +1,4 @@
+// int tttt = 0;
 /*++
 Copyright (c) 2012 Microsoft Corporation
 
@@ -1116,8 +1117,9 @@ namespace nlsat {
         }
 
         void log_lemma(std::ostream& out, unsigned n, literal const* cls, bool is_valid) {
-            ++m_lemma_count;
-            out << "(set-logic NRA)\n";
+            // ++tttt;
+            // if (tttt != 5225555) return;
+            out << "(set-logic NIA)\n";
             if (is_valid) {
                 display_smt2_bool_decls(out);
                 display_smt2_arith_decls(out);
@@ -1126,10 +1128,14 @@ namespace nlsat {
                 display_smt2(out);            
             for (unsigned i = 0; i < n; ++i) 
                 display_smt2(out << "(assert ", ~cls[i]) << ")\n";
-            display(out << "(echo \"#" << m_lemma_count << " ", n, cls) << "\")\n";
+            display(out << "(echo \"#" << m_lemma_count++ /*tttt*/ << " ", n, cls) << "\")\n";
             out << "(check-sat)\n(reset)\n";
 
             TRACE(nlsat, display(tout << "(echo \"#" << m_lemma_count << " ", n, cls) << "\")\n");
+            // if (tttt == 5223333) {
+            //     std::cout << "exit\n";
+            //     exit(1);               
+            // }
         }
 
         clause * mk_clause_core(unsigned num_lits, literal const * lits, bool learned, _assumption_set a) {
@@ -2200,6 +2206,13 @@ namespace nlsat {
         }
         
         void resolve_lazy_justification(bool_var b, lazy_justification const & jst) {
+            // if (tttt == 52133333) {
+            //     enable_trace("nlsat");
+            //     enable_trace("nlsat_solver");
+            //     enable_trace("nlsat_explain");
+            //     enable_trace("lws");
+            //     enable_trace("nlsat_resolve");
+            // }
             TRACE(nlsat_resolve, tout << "resolving lazy_justification for b" << b << "\n";);
             unsigned sz = jst.num_lits();
 
@@ -2211,9 +2224,6 @@ namespace nlsat {
                 print_out_as_math(verbose_stream(), jst) << std::endl;
 //                verbose_stream() << "\nend of assignment lemma\n";
             }
-
-            
-            
             
             m_lazy_clause.reset();
             m_explain.compute_conflict_explanation(jst.num_lits(), jst.lits(), m_lazy_clause);
