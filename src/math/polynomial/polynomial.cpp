@@ -7203,15 +7203,18 @@ namespace polynomial {
     }
 
     void manager::set_z() {
-        return m_imp->m().set_z();
+        m_imp->m().set_z();
+        m_imp->upm().set_z();
     }
 
     void manager::set_zp(numeral const & p) {
-        return m_imp->m().set_zp(p);
+        m_imp->m().set_zp(p);
+        m_imp->upm().set_zp(p);
     }
 
     void manager::set_zp(uint64_t p) {
-        return m_imp->m().set_zp(p);
+        m_imp->m().set_zp(p);
+        m_imp->upm().set_zp(p);
     }
 
     bool manager::is_var(polynomial const* p, var& v) {
