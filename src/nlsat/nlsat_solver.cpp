@@ -226,6 +226,7 @@ namespace nlsat {
         unsigned m_variable_ordering_strategy;
         bool m_set_0_more;
         bool m_cell_sample;
+        bool m_lazard;
 
         struct stats {
             unsigned               m_simplifications;
@@ -260,7 +261,8 @@ namespace nlsat {
             m_simplify(s, m_atoms, m_clauses, m_learned, m_pm),
             m_display_var(m_perm),
             m_display_assumption(nullptr),
-            m_explain(s, m_assignment, m_cache, m_atoms, m_var2eq, m_evaluator, nlsat_params(c.m_params).cell_sample()),
+            m_explain(s, m_assignment, m_cache, m_atoms, m_var2eq, m_evaluator, 
+                      nlsat_params(c.m_params).cell_sample(), nlsat_params(c.m_params).lazard()),
             m_scope_lvl(0),
             m_lemma(s),
             m_lazy_clause(s),
@@ -301,12 +303,14 @@ namespace nlsat {
             m_debug_known_solution_file_name = p.known_sat_assignment_file_name();
             m_check_lemmas |= !(m_debug_known_solution_file_name.empty());
             m_cell_sample = p.cell_sample();
+            m_lazard = p.lazard();
   
             m_ism.set_seed(m_random_seed);
             m_explain.set_simplify_cores(m_simplify_cores);
             m_explain.set_minimize_cores(min_cores);
             m_explain.set_factor(p.factor());
             m_explain.set_add_all_coeffs(p.add_all_coeffs());
+            m_explain.set_lazard(m_lazard);
             m_am.updt_params(p.p);
         }
 

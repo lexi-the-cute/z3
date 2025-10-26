@@ -47,6 +47,7 @@ namespace nlsat {
         bool                    m_add_all_coeffs;
         bool                    m_signed_project;
         bool                    m_cell_sample;
+        bool                    m_lazard;
 
 
         struct todo_set {
@@ -133,7 +134,7 @@ namespace nlsat {
         evaluator &             m_evaluator;
 
         imp(solver & s, assignment const & x2v, polynomial::cache & u, atom_vector const & atoms, atom_vector const & x2eq,
-            evaluator & ev, bool is_sample):
+            evaluator & ev, bool is_sample, bool use_lazard):
             m_solver(s),
             m_assignment(x2v),
             m_atoms(atoms),
@@ -148,6 +149,7 @@ namespace nlsat {
             m_factors_save(m_pm),
             m_roots_tmp(m_am),
             m_cell_sample(is_sample),
+            m_lazard(use_lazard),
             m_todo(u),
             m_core1(s),
             m_core2(s),
@@ -822,6 +824,61 @@ namespace nlsat {
             }
         }
 
+        void process_projection_polynomial(polynomial_ref & s) {
+            if (is_zero(s)) {
+                TRACE(nlsat_explain, tout << "projection polynomial is zero\n";);
+                return;
+            }
+            if (is_const(s)) {
+                TRACE(nlsat_explain, tout << "projection polynomial is constant: "; display(tout, s) << "\n";);
+                return;
+            }
+            if (is_zero(sign(s))) {
+                TRACE(nlsat_explain, tout << "projection polynomial vanished, adding zero assumption\n"; display(tout, s) << "\n";);
+                add_zero_assumption(s);
+                return;
+            }
+            TRACE(nlsat_explain, tout << "adding projection polynomial\n"; display(tout, s) << "\n";);
+            insert_fresh_factors_in_todo(s);
+        }
+
+        void lazard_discriminant(polynomial_ref_vector & ps, var x) {
+            polynomial_ref p(m_pm);
+            polynomial_ref disc(m_pm);
+            unsigned sz = ps.size();
+            for (unsigned i = 0; i < sz; ++i) {
+                p = ps.get(i);
+                if (max_var(p) != x)
+                    continue;
+                unsigned deg = degree(p, x);
+                if (deg < 2)
+                    continue;
+                disc = discriminant(p, x);
+                TRACE(nlsat_explain, tout << "Lazard discriminant of "; display(tout, p); tout << "\n -> "; display(tout, disc); tout << "\n";);
+                process_projection_polynomial(disc);
+            }
+        }
+
+        void lazard_resultant(polynomial_ref_vector & ps, var x) {
+            polynomial_ref p(m_pm);
+            polynomial_ref q(m_pm);
+            polynomial_ref res(m_pm);
+            unsigned sz = ps.size();
+            for (unsigned i = 0; i < sz; ++i) {
+                p = ps.get(i);
+                if (max_var(p) != x || degree(p, x) == 0)
+                    continue;
+                for (unsigned j = i + 1; j < sz; ++j) {
+                    q = ps.get(j);
+                    if (max_var(q) != x || degree(q, x) == 0)
+                        continue;
+                    res = resultant(p, q, x);
+                    TRACE(nlsat_explain, tout << "Lazard resultant of\n"; display(tout, p); tout << "\nand\n"; display(tout, q); tout << "\n -> "; display(tout, res); tout << "\n";);
+                    process_projection_polynomial(res);
+                }
+            }
+        }
+
         void test_root_literal(atom::kind k, var y, unsigned i, poly * p, scoped_literal_vector& result) {
             m_result = &result;
             add_root_literal(k, y, i, p);
@@ -1188,7 +1245,7 @@ namespace nlsat {
             }
             return true;
         }
-        
+
         /**
            \brief Apply model-based projection operation defined in our paper.
         */
@@ -1215,6 +1272,33 @@ namespace nlsat {
                 add_lcs(ps, x);
                 psc_discriminant(ps, x);
                 psc_resultant(ps, x);
+                if (m_todo.empty())
+                    break;
+                x = m_todo.extract_max_polys(ps);
+                add_cell_lits(ps, x);
+            }
+        }
+
+        void project_lazard(polynomial_ref_vector & ps, var max_x) {
+            if (ps.empty())
+                return;
+            m_todo.reset();
+            for (poly* p : ps) {
+                m_todo.insert(p);
+            }
+            var x = m_todo.extract_max_polys(ps);
+            if (x < max_x)
+                add_cell_lits(ps, x);
+            while (true) {
+                if (all_univ(ps, x) && m_todo.empty()) {
+                    m_todo.reset();
+                    break;
+                }
+                TRACE(nlsat_explain, tout << "Lazard project loop, processing var "; display_var(tout, x);
+                      tout << "\npolynomials\n"; display(tout, ps); tout << "\n";);
+                add_lcs(ps, x);
+                lazard_discriminant(ps, x);
+                lazard_resultant(ps, x);
                 if (m_todo.empty())
                     break;
                 x = m_todo.extract_max_polys(ps);
@@ -1280,7 +1364,10 @@ namespace nlsat {
         }
 
         void project(polynomial_ref_vector & ps, var max_x) {
-            if (m_cell_sample) {
+            if (m_lazard) {
+                project_lazard(ps, max_x);
+            }
+            else if (m_cell_sample) {
                 project_cdcac(ps, max_x);
             }
             else {
@@ -2110,8 +2197,8 @@ namespace nlsat {
     };
 
     explain::explain(solver & s, assignment const & x2v, polynomial::cache & u, 
-                     atom_vector const& atoms, atom_vector const& x2eq, evaluator & ev, bool use_cell_sample) {
-        m_imp = alloc(imp, s, x2v, u, atoms, x2eq, ev, use_cell_sample);
+                     atom_vector const& atoms, atom_vector const& x2eq, evaluator & ev, bool use_cell_sample, bool use_lazard) {
+        m_imp = alloc(imp, s, x2v, u, atoms, x2eq, ev, use_cell_sample, use_lazard);
     }
 
     explain::~explain() {
@@ -2145,6 +2232,10 @@ namespace nlsat {
 
     void explain::set_signed_project(bool f) {
         m_imp->m_signed_project = f;
+    }
+
+    void explain::set_lazard(bool f) {
+        m_imp->m_lazard = f;
     }
 
     void explain::main_operator(unsigned n, literal const * ls, scoped_literal_vector & result) {
